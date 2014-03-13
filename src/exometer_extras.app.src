@@ -1,0 +1,4 @@
+{application, exometer_extras, [
+    {description, ""},
+    {vsn, "0.0.1"}
+]}.
