@@ -1,5 +1,7 @@
 REBAR = ./rebar
 
+.PHONY: deps
+
 compile:
 	@$(REBAR) compile
 

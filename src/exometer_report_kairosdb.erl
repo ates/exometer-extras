@@ -42,7 +42,7 @@ exometer_info(_Msg, State) ->
 exometer_subscribe(_Metric, _DataPoint, _Extra, _Interval, State) ->
     {ok, State}.
 
-exometer_unsubscibe(_Metric, _DataPoint, _Extra, State) ->
+exometer_unsubscribe(_Metric, _DataPoint, _Extra, State) ->
     {ok, State}.
 
 exometer_newentry(_Entry, State) ->
