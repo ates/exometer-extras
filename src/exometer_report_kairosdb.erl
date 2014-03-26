@@ -103,13 +103,12 @@ exometer_terminate(_Any, _State) ->
     ignore.
 
 %% Internal functions
+make_name(App, Name, value) ->
+    list_to_binary([atom_to_list(App), ".", atom_to_list(Name)]);
+make_name(App, Name, DataPoint) when is_integer(DataPoint) ->
+    list_to_binary([atom_to_list(App), ".", atom_to_list(Name), ".", integer_to_binary(DataPoint)]);
 make_name(App, Name, DataPoint) ->
-    case DataPoint of
-        value -> %% Assume counter metric type
-            list_to_binary([atom_to_list(App), ".", atom_to_list(Name)]);
-        _ -> %% Assume histogram metric type
-            list_to_binary([atom_to_list(App), ".", atom_to_list(Name), ".", atom_to_list(DataPoint)])
-    end.
+    list_to_binary([atom_to_list(App), ".", atom_to_list(Name), ".", atom_to_list(DataPoint)]).
 
 make_tags(Tags) ->
     make_tags(Tags, []).
