@@ -50,7 +50,6 @@ exometer_report(Metric, DataPoint, _Extra, Value, State) ->
             ]
     end,
     Body = jsx:encode([JSON]),
-    lager:debug("Push JSON to KairosDB: ~p", [Body]),
     try
         case lhttpc:request(State#state.url, "POST", [], Body, 5000) of
             {ok, {{204, _}, _, _}} -> ok;
