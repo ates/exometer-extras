@@ -30,12 +30,24 @@ exometer_init(Options) ->
     Interval = proplists:get_value(interval, Options, ?DEFAULT_INTERVAL),
     {ok, #state{idx = 0, interval = Interval}}.
 
-exometer_report(Metric, _DataPoint, _Extra, Value, State) ->
+exometer_report(Metric, DataPoint, _Extra, Value, State) when DataPoint == value ->
     case ets:lookup(?MODULE, Metric) of
         [{Metric, Idx}] ->
             Name = string:join([atom_to_list(N) || N <- Metric], "_"),
             snmpa_local_db:table_create_row(appStats, [Idx], {Name, Value});
         _ -> ok
+    end,
+    {ok, State};
+exometer_report(Metric, DataPoint, _Extra, Value, State) ->
+    case is_histogram(Metric) of
+        true ->
+            case ets:lookup(?MODULE, {Metric, DataPoint}) of
+                [{{Metric, DataPoint}, Idx}] when is_integer(Value) ->
+                    Name = string:join([atom_to_list(N) || N <- Metric ++ [DataPoint]], "_"),
+                    snmpa_local_db:table_create_row(appStats, [Idx], {Name, Value});
+                _ -> ok
+            end;
+        false -> ok
     end,
     {ok, State}.
 
@@ -58,10 +70,23 @@ exometer_newentry(#exometer_entry{name = Name, type = Type, options = Options}, 
     case lists:keyfind(snmp, 1, Options) of
         {snmp, Opts} when Type == counter ->
             true = ets:insert(?MODULE, {Name, State#state.idx}),
-            exometer_report:subscribe(?MODULE, Name, value, ?INTERVAL(Opts, State));
-        _ -> ok %% the only counter type is supported
-    end,
-    {ok, State#state{idx = Idx + 1}};
+            exometer_report:subscribe(?MODULE, Name, value, ?INTERVAL(Opts, State)),
+            {ok, State#state{idx = Idx + 1}};
+        {snmp, Opts} when Type == histogram ->
+            case proplists:get_value(datapoints, Opts) of
+                undefined ->
+                    lager:error("No datapoints are specified for metric ~p", [Name]);
+                DPs ->
+                    F = fun(DP, I) ->
+                        true = ets:insert(?MODULE, {{Name, DP}, I}), I + 1
+                    end,
+                    NewIdx = lists:foldl(F, Idx, DPs),
+                    exometer_report:subscribe(?MODULE, Name, DPs, ?INTERVAL(Opts, State)),
+                    {ok, State#state{idx = NewIdx}}
+            end;
+        _ ->
+            {ok, State}
+    end;
 
 exometer_newentry(_Entry, State) ->
     {ok, State}.
@@ -86,4 +111,11 @@ load_mib(MIB) ->
         {error, Reason} -> 
             lager:error("Can't compile MIB: ~p: ~p", [MIB, Reason]),
             {error, Reason}
+    end.
+
+is_histogram(Metric) ->
+    case lists:keyfind(type, 1, exometer:info(Metric)) of
+        {type, histogram} ->
+            true;
+        _ -> false
     end.
