@@ -1,0 +1,64 @@
+APP-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY, OBJECT-TYPE, Counter64, enterprises FROM SNMPv2-SMI
+
+    OBJECT-GROUP FROM SNMPv2-CONF;
+
+    org MODULE-IDENTITY
+        LAST-UPDATED "201301150000Z"
+        ORGANIZATION "Organization"
+        CONTACT-INFO
+            "e-mail: name@domain.ltd"
+        DESCRIPTION
+            "APPLICATION"
+        REVISION "201301150000Z"
+        DESCRIPTION
+            "The initial revision of MIB module"
+        ::= { enterprises 99999 }
+
+statistics OBJECT IDENTIFIER ::= { org 1 }
+appGroups OBJECT IDENTIFIER ::= { org 2 }
+
+appStats OBJECT-TYPE
+    SYNTAX SEQUENCE OF StatTableEntry
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION ""
+    ::= { statistics 1 }
+
+appStatTableEntry OBJECT-TYPE
+    SYNTAX StatTableEntry
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION ""
+    INDEX { metricName }
+    ::= { appStats 1 }
+
+StatTableEntry ::= SEQUENCE {
+    metricName OCTET STRING,
+    metricValue Counter64
+}
+
+metricName OBJECT-TYPE
+    SYNTAX OCTET STRING
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION ""
+    ::= { appStatTableEntry 1 }
+
+metricValue OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION ""
+    ::= { appStatTableEntry 2 }
+
+appGroup OBJECT-GROUP
+    OBJECTS {
+        metricName, metricValue
+    }
+    STATUS current
+    DESCRIPTION "Groups"
+    ::= { appGroups 1 }
+END
