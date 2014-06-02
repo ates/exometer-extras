@@ -24,6 +24,11 @@ exometer_init(Options) ->
     MIBPath = proplists:get_value(mib_template, Options),
     MIBWorkPath = proplists:get_value(mib_dir, Options),
     MIBPath1 = filename:join([MIBWorkPath, filename:basename(MIBPath)]),
+    case filelib:ensure_dir(MIBPath1) of
+        ok -> ok;
+        {error, enoent} ->
+            ok = file:make_dir(MIBPath1)
+    end,
     {ok, _} = file:copy(MIBPath, MIBPath1),
     ok = load_mib(MIBPath1),
     ?MODULE = ets:new(?MODULE, [named_table, public, {read_concurrency, true}]),
@@ -33,7 +38,7 @@ exometer_init(Options) ->
 exometer_report(Metric, DataPoint, _Extra, Value, State) when DataPoint == value ->
     case ets:lookup(?MODULE, Metric) of
         [{Metric, Idx}] ->
-            Name = string:join([atom_to_list(N) || N <- Metric], "_"),
+            Name = metric_name(Metric),
             snmpa_local_db:table_create_row(appStats, [Idx], {Name, Value});
         _ -> ok
     end,
@@ -43,7 +48,7 @@ exometer_report(Metric, DataPoint, _Extra, Value, State) ->
         true ->
             case ets:lookup(?MODULE, {Metric, DataPoint}) of
                 [{{Metric, DataPoint}, Idx}] when is_integer(Value) ->
-                    Name = string:join([atom_to_list(N) || N <- Metric ++ [DataPoint]], "_"),
+                    Name = metric_name(Metric, DataPoint),
                     snmpa_local_db:table_create_row(appStats, [Idx], {Name, Value});
                 _ -> ok
             end;
@@ -119,3 +124,11 @@ is_histogram(Metric) ->
             true;
         _ -> false
     end.
+
+metric_name(Metric) ->
+    string:join([atom_to_list(N) || N <- Metric], "_").
+
+metric_name(Metric, DP) when is_integer(DP) ->
+    metric_name(Metric, list_to_atom(integer_to_list(DP)));
+metric_name(Metric, DP) ->
+    string:join([atom_to_list(N) || N <- Metric ++ [DP]], "_").
