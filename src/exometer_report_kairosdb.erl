@@ -103,15 +103,29 @@ exometer_terminate(_Any, _State) ->
 
 %% Internal functions
 make_name(App, Name, value) ->
-    list_to_binary([atom_to_list(App), ".", atom_to_list(Name)]);
-make_name(App, Name, DataPoint) when is_integer(DataPoint) ->
-    list_to_binary([atom_to_list(App), ".", atom_to_list(Name), ".", integer_to_binary(DataPoint)]);
-make_name(App, Name, DataPoint) ->
-    list_to_binary([atom_to_list(App), ".", atom_to_list(Name), ".", atom_to_list(DataPoint)]).
+    make_name(App, Name, "");
+make_name(App, Name, DP) ->
+    binary_join([cast(N) || N <- [App, Name, DP]], <<".">>).
+
+cast(V) when is_binary(V) -> V;
+cast(V) when is_list(V) -> list_to_binary(V);
+cast(V) when is_integer(V) -> integer_to_binary(V);
+cast(V) when is_atom(V) -> atom_to_binary(V, latin1).
 
 make_tags(Tags) ->
     make_tags(Tags, []).
 
 make_tags([], Acc) -> Acc;
 make_tags([Tag, Value | Rest], Acc) ->
-    make_tags(Rest, [{Tag, Value} | Acc]).
+    make_tags(Rest, [{cast(Tag), cast(Value)} | Acc]).
+
+binary_join([], _Sep) -> <<>>;
+binary_join([Part], _Sep) -> Part;
+binary_join(List, Sep) ->
+    F = fun(A, B) ->
+        if byte_size(B) > 0->
+            <<A/binary, Sep/binary, B/binary>>;
+           true -> A
+        end
+    end,
+    lists:foldr(F, <<>>, List).

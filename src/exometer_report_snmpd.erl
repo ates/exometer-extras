@@ -126,9 +126,11 @@ is_histogram(Metric) ->
     end.
 
 metric_name(Metric) ->
-    string:join([atom_to_list(N) || N <- Metric], "_").
+    metric_name(Metric, "").
 
-metric_name(Metric, DP) when is_integer(DP) ->
-    metric_name(Metric, list_to_atom(integer_to_list(DP)));
 metric_name(Metric, DP) ->
-    string:join([atom_to_list(N) || N <- Metric ++ [DP]], "_").
+    F = fun(M) when is_list(M) -> M;
+           (M) when is_integer(M) -> integer_to_list(M);
+           (M) when is_atom(M) -> atom_to_list(M)
+    end,
+    string:join([F(N) || N <- Metric ++ [DP], N /= ""], "_").
