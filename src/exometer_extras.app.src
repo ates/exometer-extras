@@ -1,5 +1,5 @@
 {application, exometer_extras, [
     {description, ""},
     {vsn, "0.0.1"},
-    {applications, [kernel, stdlib, exometer, lhttpc]}
+    {applications, [kernel, stdlib, exometer, estd, lhttpc]}
 ]}.
