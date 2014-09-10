@@ -28,7 +28,7 @@
 
 exometer_init(Options) ->
     URL = proplists:get_value(url, Options, ?DEFAULT_URL),
-    Interval = proplists:get_value(interval, Options, ?DEFAULT_INTERVAL),
+    Interval = proplists:get_value(freq, Options, ?DEFAULT_INTERVAL),
     Tags = proplists:get_value(tags, Options, []),
     {ok, #state{url = URL, interval = Interval, tags = Tags}}.
 
@@ -51,7 +51,7 @@ exometer_report(Metric, DataPoint, _Extra, Value, State) ->
     end,
     Body = jsx:encode([JSON]),
     try
-        case lhttpc:request(State#state.url, "POST", [], Body, 5000) of
+        case lhttpc:request(State#state.url, "POST", [], Body, 20000) of
             {ok, {{204, _}, _, _}} -> ok;
             Error ->
                 lager:error("Can't push metric to KairosDB: ~p", [Error])
@@ -88,7 +88,7 @@ exometer_newentry(#exometer_entry{name = Name, type = Type, options = Options}, 
                 DPs ->
                     exometer_report:subscribe(?MODULE, Name, DPs, ?INTERVAL(Opts, State))
             end;
-        false -> ok
+        _ -> ok
     end,
     {ok, State};
 

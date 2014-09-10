@@ -32,7 +32,7 @@ exometer_init(Options) ->
     {ok, _} = file:copy(MIBPath, MIBPath1),
     ok = load_mib(MIBPath1),
     ?MODULE = ets:new(?MODULE, [named_table, public, {read_concurrency, true}]),
-    Interval = proplists:get_value(interval, Options, ?DEFAULT_INTERVAL),
+    Interval = proplists:get_value(freq, Options, ?DEFAULT_INTERVAL),
     {ok, #state{idx = 0, interval = Interval}}.
 
 exometer_report(Metric, DataPoint, _Extra, Value, State) when DataPoint == value ->
